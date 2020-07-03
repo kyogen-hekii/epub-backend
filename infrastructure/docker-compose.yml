@@ -1,0 +1,36 @@
+version: "3"
+volumes:
+  db-store:
+  php-fpm-socket:
+services:
+  app:
+    build: ./docker/php
+    volumes:
+      - php-fpm-socket:/var/run/php-fpm
+      - ../backend:/work/backend
+      - ./docker/php/bash/.bash_history:/root/.bash_history
+      - ./docker/php/bash/psysh:/root/.config/psysh
+      # appでファイル作成時,hostで不明のuserだと、host側ではrootで作成されたものとなる
+      # uオプションに加えてマウントが必要になる(:roはreadonly)
+      # https://qiita.com/yohm/items/047b2e68d008ebb0f001
+      - /etc/group:/etc/group:ro
+      - /etc/passwd:/etc/passwd:ro
+
+  web:
+    build: ./docker/nginx
+    ports:
+      - 80:80
+    volumes:
+      - php-fpm-socket:/var/run/php-fpm
+      - ../backend:/work/backend
+
+  db:
+    build: ./docker/mysql
+    volumes:
+      - db-store:/var/lib/mysql
+    ports:
+      - 3306:3306
+
+# .envのCOMPOSE_PROJECT_NAMEはcontainerのprefixになる
+# e.g) COMPOSE_PROJECT_NAME=docker-laravel
+# docker-laravel_web_1, docker-laravel_app_1, docker-laravel_db_1
